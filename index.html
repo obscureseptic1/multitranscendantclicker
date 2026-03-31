@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AXIOM: Architecture of Reality</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <header>
+    <h1>AXIOM: Architecture of Reality</h1>
+    <div class="topbar">
+      <div id="eraLabel" class="badge">Era: Planetary Ignition</div>
+      <div id="timeLabel" class="badge">t = 0s</div>
+      <div id="stabilityLabel" class="badge warn">Instability: 0%</div>
+      <button id="saveBtn">Save</button>
+      <button id="exportBtn">Export</button>
+      <button id="importBtn">Import</button>
+      <button id="resetBtn" class="danger">Hard Reset</button>
+    </div>
+  </header>
+
+  <nav id="tabs"></nav>
+
+  <main>
+    <section id="overview" class="tab active"></section>
+    <section id="resources" class="tab"></section>
+    <section id="buildings" class="tab"></section>
+    <section id="research" class="tab"></section>
+    <section id="expansion" class="tab"></section>
+    <section id="conversions" class="tab"></section>
+    <section id="automation" class="tab"></section>
+    <section id="prestige" class="tab"></section>
+    <section id="anomalies" class="tab"></section>
+    <section id="codex" class="tab"></section>
+    <section id="stats" class="tab"></section>
+  </main>
+
+  <aside>
+    <h3>Event Log</h3>
+    <div id="log"></div>
+    <h3>Achievements</h3>
+    <div id="achievementList"></div>
+  </aside>
+
+  <script src="script.js"></script>
+</body>
+</html>
