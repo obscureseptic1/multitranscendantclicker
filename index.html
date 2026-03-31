@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Multitranscendant Clicker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Multitranscendant Clicker</h1>
+    <div class="resources">
+      <div>Energy: <span id="energy">0</span></div>
+      <div>Dark Matter: <span id="darkMatter">0</span></div>
+      <div>Exotic Matter: <span id="exoticMatter">0</span></div>
+      <div>Quantum Foam: <span id="quantumFoam">0</span></div>
+      <div>Anomaly Shards: <span id="anomalyShards">0</span></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Core Actions</h2>
+      <button id="clickEnergy">Generate Energy (+<span id="clickPower">1</span>)</button>
+      <button id="prestigeDark">Collapse for Dark Matter</button>
+      <button id="prestigeQuantum">Quantum Transcendence</button>
+      <button id="triggerAnomaly">Stabilize Anomaly</button>
+      <p id="status"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Buildings</h2>
+      <div id="buildings"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Dark Matter Upgrades</h2>
+      <div id="darkUpgrades"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Quantum Systems</h2>
+      <div id="quantumSystems"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Exotic Matter Lab</h2>
+      <div id="exoticSystems"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Anomaly Matrix</h2>
+      <div id="anomalies"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Achievements</h2>
+      <div id="achievements"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Codex</h2>
+      <div id="codex"></div>
+    </section>
+  </main>
+
+  <footer>
+    <button id="saveBtn">Save</button>
+    <button id="exportBtn">Export Save</button>
+    <button id="importBtn">Import Save</button>
+    <button id="resetBtn">Hard Reset</button>
+    <small>Autosaves every 10 seconds. Compatible with GitHub Pages static hosting.</small>
+  </footer>
+
+  <script src="game.js"></script>
+</body>
+</html>
