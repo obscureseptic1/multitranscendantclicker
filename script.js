@@ -9,10 +9,15 @@
     t: 0,
     era: "Planetary Ignition",
     tab: "overview",
+    initStarted: false,
+    loopStarted: false,
+    offlineApplied: false,
     lastTick: Date.now(),
     lastSaved: Date.now(),
+    lastRender: Date.now(),
     log: [],
     codex: [],
+    timing: { realDt: 0, speed: 1, effectiveTps: 0 },
     resources: {
       energy: makeResource("Energy", "⚡", "Universal throughput and power routing."),
       plasma: makeResource("Plasma", "🔥", "Enables high-heat industrial synthesis.", 100),
@@ -177,6 +182,8 @@
   }));
 
   function init() {
+    if (game.initStarted) return;
+    game.initStarted = true;
     BUILDINGS.forEach(([id, name, cat, desc, cost, scale, type]) => game.buildings[id] = { id, name, cat, desc, baseCost: cost, scale, type, owned: 0 });
     RESEARCH.forEach(([id, name, cat, cost, time, req, effect]) => game.research[id] = { id, name, cat, cost, time, req, effect, done: false, hidden: id === "forbidden" });
     CONVERSIONS.forEach(([id, name, desc, input, output, req]) => game.conversions[id] = { id, name, desc, input, output, req, on: false, rate: 1 });
@@ -191,8 +198,7 @@
     unlockCodex("Dark Matter Program", "Dark matter is not fuel. It is architecture waiting to be measured.");
     unlockCodex("Quantum Charter", "Quantum particles may be domesticated through coherence contracts.");
     unlockCodex("Exotic Directive", "Exotic matter allows non-classical edits to industrial law.");
-    loop();
-    setInterval(() => tick(1), 1000);
+    startLoop();
     setInterval(() => { save(); render(); }, 15000);
     render();
   }
@@ -202,7 +208,12 @@
     document.getElementById("exportBtn").onclick = () => prompt("Copy save string:", btoa(JSON.stringify(game)));
     document.getElementById("importBtn").onclick = () => {
       const x = prompt("Paste save string:"); if (!x) return;
-      try { Object.assign(game, JSON.parse(atob(x))); addLog("Import successful."); render(); } catch { addLog("Import failed."); }
+      try {
+        Object.assign(game, JSON.parse(atob(x)));
+        normalizeState();
+        addLog("Import successful.");
+        render();
+      } catch { addLog("Import failed."); }
     };
     document.getElementById("resetBtn").onclick = () => {
       if (confirm("Hard reset AXIOM? All progress will be lost.")) { localStorage.removeItem(SAVE_KEY); location.reload(); }
@@ -211,10 +222,23 @@
 
   function setupTabs() {
     const nav = document.getElementById("tabs");
+    const tabNames = {
+      overview: "Overview",
+      resources: "Resources",
+      buildings: "Build",
+      research: "Research",
+      expansion: "Map",
+      conversions: "Convert",
+      automation: "Automation",
+      prestige: "Prestige",
+      anomalies: "Anomalies",
+      codex: "Codex",
+      stats: "Stats"
+    };
     nav.innerHTML = "";
     TABS.forEach(t => {
       const b = document.createElement("button");
-      b.textContent = t[0].toUpperCase() + t.slice(1);
+      b.textContent = tabNames[t] || (t[0].toUpperCase() + t.slice(1));
       b.className = t === game.tab ? "active" : "";
       b.onclick = () => {
         game.tab = t;
@@ -225,21 +249,23 @@
     });
   }
 
-  function tick(dt) {
-    const speed = getTickSpeed();
-    dt *= speed;
-    game.t += dt;
-    game.stats.playSeconds += dt;
-    baseIncome(dt);
-    processBuildings(dt);
-    processConversions(dt);
-    processResearch(dt);
-    processInstability(dt);
-    processAnomalies(dt);
-    processAutomation(dt);
+  function tick(realDt) {
+    const speed = getTickSpeed(); // explicit speed multiplier source
+    const simDt = realDt * speed;
+    game.t += simDt;
+    game.stats.playSeconds += simDt;
+    game.timing.realDt = realDt;
+    game.timing.speed = speed;
+    game.timing.effectiveTps = speed;
+    baseIncome(simDt);
+    processBuildings(simDt);
+    processConversions(simDt);
+    processResearch(simDt);
+    processInstability(simDt);
+    processAnomalies(simDt);
+    processAutomation(simDt);
     checkUnlocks();
     checkAchievements();
-    render();
   }
 
   function baseIncome(dt) {
@@ -502,6 +528,7 @@
     document.getElementById("eraLabel").textContent = `Era: ${game.era}`;
     document.getElementById("timeLabel").textContent = `t = ${format(game.stats.playSeconds)}s`;
     document.getElementById("stabilityLabel").textContent = `Instability: ${format(game.systems.instability)}%`;
+    document.getElementById("debugTiming").textContent = `Δt ${game.timing.realDt.toFixed(3)}s · x${game.timing.speed.toFixed(2)} · ${game.timing.effectiveTps.toFixed(2)} tps`;
     renderOverview(); renderResources(); renderBuildings(); renderResearch(); renderExpansion(); renderConversions(); renderAutomation(); renderPrestige(); renderAnomalies(); renderCodex(); renderStats(); renderLog(); renderAchievements();
   }
 
@@ -531,11 +558,11 @@
   }
 
   function renderResources() {
-    document.getElementById("resources").innerHTML = `<div class="card-grid">${Object.entries(game.resources).filter(([,r]) => r.unlocked).map(([id,r]) => `<div class="card"><div class="title"><span>${r.icon} ${r.name}</span><span>${format(r.amount)}</span></div><div class="muted">${r.special}</div><div class="small">/s: ${format(calcPerSec(id))}</div></div>`).join("")}</div>`;
+    document.getElementById("resources").innerHTML = `<h3 class="section-title">All Resources</h3><div class="card-grid">${Object.entries(game.resources).filter(([,r]) => r.unlocked).map(([id,r]) => `<div class="card"><div class="title"><span>${r.icon} ${r.name}</span><span>${format(r.amount)}</span></div><div class="muted">${r.special}</div><div class="small">/s: ${format(calcPerSec(id))}</div></div>`).join("")}</div>`;
   }
 
   function renderBuildings() {
-    document.getElementById("buildings").innerHTML = `<div class="card-grid">${BUILDINGS.map(([id,name,cat,desc]) => {
+    document.getElementById("buildings").innerHTML = `<h3 class="section-title">Infrastructure</h3><div class="card-grid">${BUILDINGS.map(([id,name,cat,desc]) => {
       const b = game.buildings[id];
       const c = buildingPrice(id);
       const locked = !buildingVisible(id);
@@ -545,7 +572,7 @@
   }
 
   function renderResearch() {
-    document.getElementById("research").innerHTML = `<div class="card-grid">${Object.values(game.research).filter(r => !r.hidden || game.hiddenFlags.forbiddenUnlocked || game.stats.anomaliesSeen > 8).map(r => {
+    document.getElementById("research").innerHTML = `<h3 class="section-title">Research Tree</h3><div class="card-grid">${Object.values(game.research).filter(r => !r.hidden || game.hiddenFlags.forbiddenUnlocked || game.stats.anomaliesSeen > 8).map(r => {
       const ready = r.req.every(x => game.research[x]?.done);
       return `<div class="card ${(!ready || r.done) ? "locked" : ""}"><div class="title"><span>${r.name}</span><span>${r.cat}</span></div><div class="muted">${r.effect}</div><div class="small">Cost: ${costText(r.cost)} · Time: ${r.time}s</div><div class="progress"><div style="width:${Math.min(100, ((r.progress || 0)/r.time)*100)}%"></div></div><button ${(!ready || r.done) ? "disabled" : ""} data-r="${r.id}">${r.done ? "Completed" : "Queue"}</button></div>`;
     }).join("")}</div><p class="small">Current: ${game.currentResearch ? game.research[game.currentResearch].name : "None"}</p>`;
@@ -553,7 +580,7 @@
   }
 
   function renderExpansion() {
-    document.getElementById("expansion").innerHTML = `<div class="card-grid">${REGIONS.map(([id,name,desc,cost,mult,bonus]) => {
+    document.getElementById("expansion").innerHTML = `<h3 class="section-title">Expansion Map</h3><div class="card-grid">${REGIONS.map(([id,name,desc,cost,mult,bonus]) => {
       const ownedRegion = game.regionsOwned.includes(id);
       const available = !ownedRegion && canAfford(cost);
       return `<div class="card ${ownedRegion ? "" : "locked"}"><div class="title"><span>${name}</span><span>${ownedRegion ? "Owned" : "Locked"}</span></div><div class="muted">${desc}</div><div class="small">Bonus: ${bonus}</div><div class="small">Cost: ${costText(cost)}</div><button ${ownedRegion ? "disabled" : ""} data-region="${id}">${available ? "Expand" : "Insufficient"}</button></div>`;
@@ -777,6 +804,8 @@
   }
 
   function offlineProgress() {
+    if (game.offlineApplied) return;
+    game.offlineApplied = true;
     const now = Date.now();
     const secs = Math.min(3600 * 8, Math.max(0, (now - (game.lastSaved || now)) / 1000));
     if (secs < 3) return;
@@ -792,11 +821,23 @@
     addLog(`Offline progression: ${format(secs)}s simulated at ${Math.floor(efficiency*100)}% efficiency.`);
   }
 
+  function startLoop() {
+    if (game.loopStarted) return;
+    game.loopStarted = true;
+    game.lastTick = Date.now();
+    game.lastRender = Date.now();
+    requestAnimationFrame(loop);
+  }
+
   function loop() {
     const now = Date.now();
-    const dt = Math.min(0.4, (now - game.lastTick) / 1000);
+    const dt = Math.min(0.25, (now - game.lastTick) / 1000);
     game.lastTick = now;
     tick(dt);
+    if (now - game.lastRender >= 100) {
+      render();
+      game.lastRender = now;
+    }
     requestAnimationFrame(loop);
   }
 
@@ -830,6 +871,11 @@
     game.systems.darkPressure ??= 0;
     game.systems.entanglement ??= 0;
     game.systems.exoticDrift ??= 0;
+    game.timing ??= { realDt: 0, speed: 1, effectiveTps: 0 };
+    game.initStarted = false;
+    game.loopStarted = false;
+    game.offlineApplied ??= false;
+    game.lastRender ??= Date.now();
     game.hiddenFlags.mirrorUnlocked ??= false;
     ACHIEVEMENTS.forEach(a => { if (!game.achievements[a.id]) game.achievements[a.id] = a; });
   }
