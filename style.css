@@ -105,6 +105,12 @@ aside {
 }
 .card h4 { margin: 0 0 8px; }
 .card.locked { opacity: 0.5; filter: grayscale(0.35); }
+.card.unlocked-pop { animation: unlockPop 0.55s ease; }
+@keyframes unlockPop {
+  0% { transform: scale(0.97); box-shadow: 0 0 0 rgba(79,215,255,0); }
+  45% { transform: scale(1.01); box-shadow: 0 0 20px rgba(79,215,255,0.35); }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(79,215,255,0); }
+}
 .title { display: flex; justify-content: space-between; gap: 8px; font-weight: 700; }
 .muted { color: var(--muted); font-size: 0.88rem; }
 .progress {
@@ -129,6 +135,21 @@ aside {
 .achv.done { border-color: #2f9f6d; color: #b5ffd5; }
 .small { font-size: 0.78rem; }
 .section-title { margin: 4px 0 10px; font-size: 1.02rem; color: #c3e7ff; }
+.primary-btn {
+  font-size: 1rem;
+  padding: 10px 14px;
+  border-color: #5dd7ff;
+  box-shadow: 0 0 12px rgba(79,215,255,0.35);
+}
+.tutorial {
+  border: 1px solid #3a6799;
+  background: rgba(17, 30, 58, 0.9);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.tutorial ul { margin: 6px 0 0 18px; padding: 0; }
+.tutorial li.done { color: #9af4bf; }
 @media (max-width: 1100px) {
   body { grid-template-columns: 1fr; grid-template-rows: auto auto auto 1fr; }
   aside { grid-column: 1 / 2; grid-row: auto; max-height: 360px; }

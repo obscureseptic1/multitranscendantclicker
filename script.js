@@ -20,26 +20,26 @@
     timing: { realDt: 0, speed: 1, effectiveTps: 0 },
     resources: {
       energy: makeResource("Energy", "⚡", "Universal throughput and power routing."),
-      plasma: makeResource("Plasma", "🔥", "Enables high-heat industrial synthesis.", 100),
-      antimatter: makeResource("Antimatter", "🧨", "Explosive output; destabilizes containment.", 0),
-      darkMatter: makeResource("Dark Matter", "🌑", "Improves hidden extraction efficiencies.", 0),
-      quantum: makeResource("Quantum Particles", "⚛", "Accelerates research and probability effects.", 0),
-      exotic: makeResource("Exotic Matter", "🧬", "Bends production laws and cost curves.", 0),
-      flux: makeResource("Spacetime Flux", "🕳", "Controls game speed and temporal science.", 0),
-      cores: makeResource("Singularity Cores", "◉", "Powers ultra-dense late structures.", 0),
-      vacuum: makeResource("Vacuum Essence", "☄", "Enables permanent reality edits.", 0),
-      fragments: makeResource("Multiversal Fragments", "✶", "Deepest transcendence currency.", 0),
-      credits: makeResource("Credits", "¤", "Operational economics."),
-      alloys: makeResource("Alloys", "⛓", "Construction material for structures."),
-      heat: makeResource("Heat", "♨", "Drives plasma pathways, hurts stability if unmanaged."),
-      data: makeResource("Data", "⌁", "Research input and scanner output."),
-      rp: makeResource("Research Points", "Δ", "Required for unlocking technologies."),
-      stabilizers: makeResource("Stabilizers", "🛡", "Reduces antimatter and vacuum instability."),
-      qubits: makeResource("Qubits", "⌬", "Quantum computing substrate for entanglement systems."),
-      entropy: makeResource("Entropy", "∿", "High entropy reduces conversion efficiency."),
-      axioms: makeResource("Axiom Sigils", "⟁", "Late-game law-writing tokens forged from exotic reality work."),
-      civMarks: makeResource("Civilization Marks", "✦", "Ascension prestige currency."),
-      realityShards: makeResource("Reality Shards", "⬖", "Reality collapse currency."),
+      plasma: makeResource("Plasma", "🔥", "Enables high-heat industrial synthesis.", 1),
+      antimatter: makeResource("Antimatter", "🧨", "Explosive output; destabilizes containment.", 1),
+      darkMatter: makeResource("Dark Matter", "🌑", "Improves hidden extraction efficiencies.", 1),
+      quantum: makeResource("Quantum Particles", "⚛", "Accelerates research and probability effects.", 1),
+      exotic: makeResource("Exotic Matter", "🧬", "Bends production laws and cost curves.", 1),
+      flux: makeResource("Spacetime Flux", "🕳", "Controls game speed and temporal science.", 1),
+      cores: makeResource("Singularity Cores", "◉", "Powers ultra-dense late structures.", 1),
+      vacuum: makeResource("Vacuum Essence", "☄", "Enables permanent reality edits.", 1),
+      fragments: makeResource("Multiversal Fragments", "✶", "Deepest transcendence currency.", 1),
+      credits: makeResource("Credits", "¤", "Operational economics.", 1),
+      alloys: makeResource("Alloys", "⛓", "Construction material for structures.", 1),
+      heat: makeResource("Heat", "♨", "Drives plasma pathways, hurts stability if unmanaged.", 1),
+      data: makeResource("Data", "⌁", "Research input and scanner output.", 1),
+      rp: makeResource("Research Points", "Δ", "Required for unlocking technologies.", 1),
+      stabilizers: makeResource("Stabilizers", "🛡", "Reduces antimatter and vacuum instability.", 1),
+      qubits: makeResource("Qubits", "⌬", "Quantum computing substrate for entanglement systems.", 1),
+      entropy: makeResource("Entropy", "∿", "High entropy reduces conversion efficiency.", 1),
+      axioms: makeResource("Axiom Sigils", "⟁", "Late-game law-writing tokens forged from exotic reality work.", 1),
+      civMarks: makeResource("Civilization Marks", "✦", "Ascension prestige currency.", 1),
+      realityShards: makeResource("Reality Shards", "⬖", "Reality collapse currency.", 1),
     },
     manual: { energy: 1, stabilize: 0.5, plasma: 0, scan: 1, charges: 0 },
     systems: { instability: 0, decoherence: 0, temporalStress: 0, vacuumInstability: 0, entropyPressure: 0, darkPressure: 0, entanglement: 0, exoticDrift: 0 },
@@ -55,7 +55,9 @@
     prestige: { ascensions: 0, collapses: 0, transcends: 0, tree: {} },
     stats: { clicks: 0, buildingsBought: 0, anomaliesSeen: 0, totalEnergy: 0, playSeconds: 0, offlineSeconds: 0 },
     achievements: {},
-    hiddenFlags: { precursor: false, falseVacuumSeen: false, forbiddenUnlocked: false, mirrorUnlocked: false }
+    hiddenFlags: { precursor: false, falseVacuumSeen: false, forbiddenUnlocked: false, mirrorUnlocked: false },
+    milestones: { firstBuilding: false, plasmaUnlock: false, researchUnlock: false, antimatterUnlock: false },
+    ui: { notice: "", noticeAt: 0 }
   };
 
   const BUILDINGS = [
@@ -238,15 +240,47 @@
     nav.innerHTML = "";
     TABS.forEach(t => {
       const b = document.createElement("button");
+      b.dataset.tab = t;
       b.textContent = tabNames[t] || (t[0].toUpperCase() + t.slice(1));
       b.className = t === game.tab ? "active" : "";
+      const unlocked = isTabUnlocked(t);
+      b.disabled = !unlocked;
+      if (!unlocked) b.title = tabRequirement(t);
       b.onclick = () => {
+        if (!isTabUnlocked(t)) return;
         game.tab = t;
         [...document.querySelectorAll(".tab")].forEach(el => el.classList.toggle("active", el.id === t));
-        [...nav.children].forEach(n => n.classList.toggle("active", n.textContent.toLowerCase() === t));
+        [...nav.children].forEach(n => n.classList.toggle("active", n.dataset.tab === t));
       };
       nav.appendChild(b);
     });
+  }
+
+  function isTabUnlocked(tab) {
+    if (["overview", "resources", "buildings"].includes(tab)) return true;
+    if (tab === "research") return game.milestones.plasmaUnlock || game.research.power1.done;
+    if (tab === "conversions") return game.research.plasma1.done;
+    if (tab === "expansion") return game.resources.credits.amount >= 120 || game.regionsOwned.length > 1;
+    if (tab === "automation") return game.unlocked.automation;
+    if (tab === "prestige") return game.resources.energy.amount >= 20000 || game.prestige.ascensions > 0;
+    if (tab === "anomalies") return game.stats.anomaliesSeen > 0 || owned("deepSpaceRelay") > 0;
+    if (tab === "codex") return game.codex.length >= 2;
+    if (tab === "stats") return game.stats.playSeconds > 45;
+    return true;
+  }
+
+  function tabRequirement(tab) {
+    const req = {
+      research: "Unlock Plasma",
+      conversions: "Complete Plasma Engineering",
+      expansion: "Accumulate Credits",
+      automation: "Research Automation Mesh",
+      prestige: "Reach mid-game thresholds",
+      anomalies: "Encounter anomalies",
+      codex: "Log discoveries",
+      stats: "Play a little longer"
+    };
+    return req[tab] || "Locked";
   }
 
   function tick(realDt) {
@@ -449,6 +483,28 @@
   }
 
   function checkUnlocks() {
+    if (game.stats.buildingsBought >= 1 && !game.milestones.firstBuilding) {
+      game.milestones.firstBuilding = true;
+      announceUnlock("Milestone reached: First building online.");
+    }
+    if (game.resources.energy.amount >= 120 && !game.resources.plasma.unlocked) {
+      game.resources.plasma.unlocked = true;
+      game.resources.credits.unlocked = true;
+      game.resources.alloys.unlocked = true;
+      game.resources.heat.unlocked = true;
+      game.resources.data.unlocked = true;
+      game.resources.rp.unlocked = true;
+      game.milestones.plasmaUnlock = true;
+      announceUnlock("New system unlocked: Plasma engineering.");
+    }
+    if (game.resources.plasma.amount >= 8 && !game.milestones.researchUnlock) {
+      game.milestones.researchUnlock = true;
+      announceUnlock("Research unlocked. Open the Research tab.");
+    }
+    if (game.resources.antimatter.amount > 0.5 && !game.milestones.antimatterUnlock) {
+      game.milestones.antimatterUnlock = true;
+      announceUnlock("Milestone reached: Antimatter unlocked.");
+    }
     if (game.resources.antimatter.amount > 0.5) game.unlocked.antimatter = true;
     if (game.resources.darkMatter.amount > 0.2) game.unlocked.dark = true;
     if (game.resources.quantum.amount > 0.2) game.unlocked.quantum = true;
@@ -461,7 +517,19 @@
     if (game.resources.axioms.amount > 0.1) unlockCodex("Sigil Registry", "Laws can be patched in production.");
 
     const r = game.resources;
-    if (r.energy.amount > 100) r.plasma.unlocked = true;
+    if (game.unlocked.antimatter) game.resources.stabilizers.unlocked = true;
+    if (game.unlocked.dark) game.resources.darkMatter.unlocked = true;
+    if (game.unlocked.quantum) game.resources.quantum.unlocked = true;
+    if (game.unlocked.exotic) game.resources.exotic.unlocked = true;
+    if (game.unlocked.flux) game.resources.flux.unlocked = true;
+    if (game.unlocked.singularity) game.resources.cores.unlocked = true;
+    if (game.unlocked.vacuum) game.resources.vacuum.unlocked = true;
+    if (game.unlocked.multiversal) game.resources.fragments.unlocked = true;
+    if (game.resources.qubits.amount > 0.1) game.resources.qubits.unlocked = true;
+    if (game.resources.axioms.amount > 0.1) game.resources.axioms.unlocked = true;
+    if (game.resources.entropy.amount > 0.1) game.resources.entropy.unlocked = true;
+    if (game.resources.civMarks.amount > 0) game.resources.civMarks.unlocked = true;
+    if (game.resources.realityShards.amount > 0) game.resources.realityShards.unlocked = true;
     if (game.t > 900) game.era = "Interplanetary Industry";
     if (game.t > 2600) game.era = "Stellar Ambition";
     if (game.t > 5400) game.era = "Strange Physics";
@@ -525,6 +593,9 @@
   }
 
   function render() {
+    if (game.ui.notice && Date.now() - game.ui.noticeAt > 7000) game.ui.notice = "";
+    if (!isTabUnlocked(game.tab)) game.tab = "overview";
+    setupTabs();
     document.getElementById("eraLabel").textContent = `Era: ${game.era}`;
     document.getElementById("timeLabel").textContent = `t = ${format(game.stats.playSeconds)}s`;
     document.getElementById("stabilityLabel").textContent = `Instability: ${format(game.systems.instability)}%`;
@@ -533,28 +604,44 @@
   }
 
   function renderOverview() {
+    const step1 = game.resources.energy.amount >= 20;
+    const step2 = game.stats.buildingsBought >= 1;
+    const step3 = game.resources.plasma.unlocked;
+    const showEarlyBuildings = BUILDINGS.filter(([id]) => ["solarArray", "thermalWell"].includes(id));
     const el = document.getElementById("overview");
-    el.innerHTML = `<div class="metric-grid">
+    el.innerHTML = `<div class="tutorial">
+      <strong>Mission Guidance</strong>
+      <ul>
+        <li class="${step1 ? "done" : ""}">Step 1: Generate energy (target: 20)</li>
+        <li class="${step2 ? "done" : ""}">Step 2: Buy your first building</li>
+        <li class="${step3 ? "done" : ""}">Step 3: Unlock plasma</li>
+      </ul>
+      ${game.ui.notice ? `<div class="small">${game.ui.notice}</div>` : ""}
+    </div>
+    <div class="metric-grid">
       ${metric("Energy", game.resources.energy.amount, game.resources.energy.perSec)}
-      ${metric("Plasma", game.resources.plasma.amount, game.resources.plasma.perSec)}
-      ${metric("Antimatter", game.resources.antimatter.amount, game.resources.antimatter.perSec)}
-      ${metric("Dark Matter", game.resources.darkMatter.amount, game.resources.darkMatter.perSec)}
-      ${metric("Quantum", game.resources.quantum.amount, game.resources.quantum.perSec)}
-      ${metric("Exotic", game.resources.exotic.amount, game.resources.exotic.perSec)}
-      ${metric("Qubits", game.resources.qubits.amount, game.resources.qubits.perSec)}
-      ${metric("Axiom Sigils", game.resources.axioms.amount, game.resources.axioms.perSec)}
+      ${game.resources.plasma.unlocked ? metric("Plasma", game.resources.plasma.amount, game.resources.plasma.perSec) : ""}
+      ${game.resources.antimatter.unlocked ? metric("Antimatter", game.resources.antimatter.amount, game.resources.antimatter.perSec) : ""}
     </div>
     <h3>Manual Operations</h3>
     <div class="card-grid">
-      <div class="card"><div class="title"><span>Channel Energy</span><button id="m1">Execute</button></div><div class="muted">Core early action. Generates Energy and Heat.</div></div>
-      <div class="card"><div class="title"><span>Stabilize Reactor</span><button id="m2">Execute</button></div><div class="muted">Creates stabilizers and lowers instability.</div></div>
-      <div class="card"><div class="title"><span>Pulse Plasma</span><button id="m3">Execute</button></div><div class="muted">Spend energy to ignite plasma pulses.</div></div>
-      <div class="card"><div class="title"><span>Run Deep Scan</span><button id="m4">Execute</button></div><div class="muted">Collect data; occasional RP spike.</div></div>
-    </div>`;
+      <div class="card unlocked-pop"><div class="title"><span>Channel Energy</span><button id="m1" class="primary-btn">Generate</button></div><div class="muted">Primary early action. Generates Energy and a little Heat.</div></div>
+      <div class="card"><div class="title"><span>Stabilize Reactor</span><button id="m2" ${game.resources.energy.amount < 50 ? "disabled" : ""}>Execute</button></div><div class="muted">${game.resources.energy.amount < 50 ? "Requires 50 Energy." : "Creates stabilizers and lowers instability."}</div></div>
+      <div class="card"><div class="title"><span>Pulse Plasma</span><button id="m3" ${!game.resources.plasma.unlocked ? "disabled" : ""}>Execute</button></div><div class="muted">${!game.resources.plasma.unlocked ? "Unlock Plasma first." : "Spend energy to ignite plasma pulses."}</div></div>
+      <div class="card"><div class="title"><span>Run Deep Scan</span><button id="m4" ${game.stats.buildingsBought < 1 ? "disabled" : ""}>Execute</button></div><div class="muted">${game.stats.buildingsBought < 1 ? "Requires first building." : "Collect data; occasional RP spike."}</div></div>
+    </div>
+    <h3>Starter Buildings</h3>
+    <div class="card-grid">${showEarlyBuildings.map(([id, name, , desc]) => {
+      const b = game.buildings[id];
+      const c = buildingPrice(id);
+      const ready = canAfford(c);
+      return `<div class="card ${ready ? "unlocked-pop" : ""}"><div class="title"><span>${name}</span><span>x${b.owned}</span></div><div class="muted">${desc}</div><div class="small">Cost: ${costText(c)}</div><button data-buy-overview="${id}" ${ready ? "" : "disabled"}>${ready ? "Build" : "Need resources"}</button></div>`;
+    }).join("")}</div>`;
     el.querySelector("#m1").onclick = () => manualAction("channel");
-    el.querySelector("#m2").onclick = () => manualAction("stabilize");
-    el.querySelector("#m3").onclick = () => manualAction("pulse");
-    el.querySelector("#m4").onclick = () => manualAction("scan");
+    el.querySelector("#m2").onclick = () => game.resources.energy.amount >= 50 && manualAction("stabilize");
+    el.querySelector("#m3").onclick = () => game.resources.plasma.unlocked && manualAction("pulse");
+    el.querySelector("#m4").onclick = () => game.stats.buildingsBought >= 1 && manualAction("scan");
+    el.querySelectorAll("[data-buy-overview]").forEach(btn => btn.onclick = () => buyBuilding(btn.dataset.buyOverview));
   }
 
   function renderResources() {
@@ -680,7 +767,9 @@
 
   function buildingVisible(id) {
     const idx = BUILDINGS.findIndex(x => x[0] === id);
-    if (idx < 6) return true;
+    if (idx === 0) return true;
+    if (idx === 1) return game.resources.energy.amount >= 25 || owned("solarArray") > 0;
+    if (idx < 6) return game.resources.plasma.unlocked || game.stats.buildingsBought >= 3;
     if (idx < 14) return game.research.plasma1.done || game.regionsOwned.includes("mars");
     if (idx < 22) return game.research.dark1.done || game.resources.darkMatter.amount > 0;
     return game.research.vac1.done || game.resources.vacuum.amount > 0 || game.research.exotic2?.done;
@@ -772,7 +861,7 @@
 
   function canAfford(cost) { return Object.entries(cost).every(([k, v]) => (game.resources[k]?.amount || 0) >= v); }
   function pay(cost) { Object.entries(cost).forEach(([k,v]) => game.resources[k].amount -= v); }
-  function gain(k, v) { if (!game.resources[k]) return; game.resources[k].amount += v; game.resources[k].perSec = v; if (k === "energy") game.stats.totalEnergy += v; game.resources[k].unlocked = true; }
+  function gain(k, v) { if (!game.resources[k]) return; game.resources[k].amount += v; game.resources[k].perSec = v; if (k === "energy") game.stats.totalEnergy += v; }
   function resourceKey(k) { return { shards: "realityShards" }[k] || k; }
   function owned(id) { return game.buildings[id]?.owned || 0; }
 
@@ -780,6 +869,12 @@
     const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
     game.log.push(line);
     if (game.log.length > 120) game.log.shift();
+  }
+
+  function announceUnlock(msg) {
+    game.ui.notice = msg;
+    game.ui.noticeAt = Date.now();
+    addLog(msg);
   }
 
   function unlockCodex(title, body) {
@@ -877,6 +972,9 @@
     game.offlineApplied ??= false;
     game.lastRender ??= Date.now();
     game.hiddenFlags.mirrorUnlocked ??= false;
+    game.milestones ??= { firstBuilding: false, plasmaUnlock: false, researchUnlock: false, antimatterUnlock: false };
+    game.ui ??= { notice: "", noticeAt: 0 };
+    if (game.resources.energy) game.resources.energy.unlocked = true;
     ACHIEVEMENTS.forEach(a => { if (!game.achievements[a.id]) game.achievements[a.id] = a; });
   }
 
